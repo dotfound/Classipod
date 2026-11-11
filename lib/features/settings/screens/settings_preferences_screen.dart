@@ -1,8 +1,11 @@
 import 'package:classipod/core/constants/constants.dart';
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/extensions/go_router_extensions.dart';
+import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/navigation/routes.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
+import 'package:classipod/core/services/kiosk_service.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/menu/controller/split_screen_controller.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
@@ -34,6 +37,7 @@ enum _SettingsDisplayItems {
   showAppTutorial,
   librarySettings,
   podcastSettings,
+  dockMode,
   resetSettings,
   donate;
 
@@ -75,6 +79,8 @@ enum _SettingsDisplayItems {
         return context.localization.librarySettingsScreenTitle;
       case podcastSettings:
         return context.localization.podcastsScreenTitle;
+      case dockMode:
+        return context.localization.dockModeSettingTitle;
       case resetSettings:
         return context.localization.resetSettingsTitle;
       case donate:
@@ -183,6 +189,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case _SettingsDisplayItems.podcastSettings:
         context.goNamed(Routes.podcastSettings.name);
         break;
+      case _SettingsDisplayItems.dockMode:
+        final preferences = ref
+            .read(sharedPreferencesWithCacheProvider)
+            .requireValue;
+        final enabled =
+            !(preferences.getBool(SharedPreferencesKeys.dockMode.name) ??
+                false);
+        await preferences.setBool(SharedPreferencesKeys.dockMode.name, enabled);
+        await KioskService.setDockMode(enabled: enabled);
+        if (mounted) setState(() {});
+        break;
       case _SettingsDisplayItems.resetSettings:
         await ref
             .read(settingsPreferencesControllerProvider.notifier)
@@ -222,6 +239,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     _SettingsDisplayItems settingsItem,
   ) {
     switch (settingsItem) {
+      case _SettingsDisplayItems.dockMode:
+        return (ref
+                    .read(sharedPreferencesWithCacheProvider)
+                    .requireValue
+                    .getBool(SharedPreferencesKeys.dockMode.name) ??
+                false)
+            ? context.localization.tileValueOn
+            : context.localization.tileValueOff;
       case _SettingsDisplayItems.shuffle:
         return ref.watch(nowPlayingDetailsProvider).shuffleMode.title(context);
       case _SettingsDisplayItems.deviceColor:

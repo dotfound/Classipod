@@ -41,6 +41,7 @@ import 'package:classipod/features/settings/screens/device_color_selection_scree
 import 'package:classipod/features/settings/screens/exclude_directories_screen.dart';
 import 'package:classipod/features/settings/screens/language_selection_screen.dart';
 import 'package:classipod/features/settings/screens/library_settings_screen.dart';
+import 'package:classipod/features/settings/screens/maintenance_screen.dart';
 import 'package:classipod/features/settings/screens/missing_tracks_screen.dart';
 import 'package:classipod/features/settings/screens/settings_preferences_screen.dart';
 import 'package:classipod/features/sleep_timer/screens/sleep_timer_screen.dart';
@@ -267,6 +268,19 @@ final routerProvider = Provider(
                         pageBuilder: (context, state) => const CupertinoPage(
                           child: ScreenPageContent(child: AboutScreen()),
                         ),
+                        routes: [
+                          GoRoute(
+                            path: Routes.maintenance.name,
+                            name: Routes.maintenance.name,
+                            parentNavigatorKey: rootNavigatorKey,
+                            pageBuilder: (context, state) =>
+                                const CupertinoPage(
+                                  child: ScreenPageContent(
+                                    child: MaintenanceScreen(),
+                                  ),
+                                ),
+                          ),
+                        ],
                       ),
                       GoRoute(
                         path: Routes.podcastSettings.name,

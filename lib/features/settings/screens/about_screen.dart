@@ -11,17 +11,55 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AboutScreen extends ConsumerWidget {
+class AboutScreen extends ConsumerStatefulWidget {
   const AboutScreen({super.key});
 
+  /// Presses of Select needed before the long hold opens maintenance.
+  static const maintenancePresses = 7;
+
+  /// The hold is 3 seconds; a long press is recognised after 0.5 seconds.
+  static const maintenanceHold = Duration(milliseconds: 2500);
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends ConsumerState<AboutScreen> {
+  int _selectPresses = 0;
+  DateTime? _holdStarted;
+
+  /// Hidden maintenance exit: press Select 7 times, then hold it for 3
+  /// seconds.
+  void _trackMaintenanceGesture(DeviceAction action) {
+    switch (action) {
+      case DeviceAction.select:
+        _selectPresses++;
+      case DeviceAction.selectLongPress:
+        _holdStarted = DateTime.now();
+      case DeviceAction.longPressEnd:
+        final started = _holdStarted;
+        _holdStarted = null;
+        final unlocked =
+            _selectPresses >= AboutScreen.maintenancePresses &&
+            started != null &&
+            DateTime.now().difference(started) >= AboutScreen.maintenanceHold;
+        _selectPresses = 0;
+        if (unlocked) context.goNamed(Routes.maintenance.name);
+      default:
+        _selectPresses = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.listen(deviceButtonsServiceProvider, (prevState, newState) {
       if (newState == null ||
           context.router.locationNamed != Routes.about.name) {
         return;
       } else if (newState == DeviceAction.menu) {
         context.pop();
+      } else {
+        _trackMaintenanceGesture(newState);
       }
     });
 
