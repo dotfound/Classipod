@@ -12,8 +12,9 @@ try {
     val keystorePropertiesFile = rootProject.file("key.properties")
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 } catch (e: FileNotFoundException) {
-    println("Warning: key.properties file not found. Ensure the file is present before building the release version.")
+    println("Warning: key.properties file not found. Release builds are signed with the debug key.")
 }
+val hasReleaseKeystore = keystoreProperties["storeFile"] != null
 
 android {
     namespace = "com.adeeteya.classipod"
@@ -26,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.adeeteya.classipod"
+        applicationId = "uk.dotfound.pixelpod"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -55,7 +56,9 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(
+                if (hasReleaseKeystore) "release" else "debug",
+            )
         }
     }
 
@@ -63,12 +66,12 @@ android {
     productFlavors {
         create("production") {
             dimension = "default"
-            resValue("string", "app_name", "Classipod")
+            resValue("string", "app_name", "PixelPod")
             applicationIdSuffix = ""
         }
         create("dev") {
             dimension = "default"
-            resValue("string", "app_name", "Classipod Dev")
+            resValue("string", "app_name", "PixelPod Dev")
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
         }
