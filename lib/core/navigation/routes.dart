@@ -30,6 +30,10 @@ import 'package:classipod/features/music/songs/screens/songs_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_more_options_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_idle_navigation.dart';
+import 'package:classipod/features/podcasts/screens/podcast_episode_options.dart';
+import 'package:classipod/features/podcasts/screens/podcast_settings_screen.dart';
+import 'package:classipod/features/podcasts/screens/podcast_show_screen.dart';
+import 'package:classipod/features/podcasts/screens/podcasts_screen.dart';
 import 'package:classipod/features/settings/controller/exclude_directories_controller.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
 import 'package:classipod/features/settings/screens/about_screen.dart';
@@ -43,6 +47,7 @@ import 'package:classipod/features/sleep_timer/screens/sleep_timer_screen.dart';
 import 'package:classipod/features/status_bar/controller/status_bar_transition_observer.dart';
 import 'package:classipod/features/status_bar/widgets/device_screen_content.dart';
 import 'package:classipod/features/status_bar/widgets/screen_page_content.dart';
+import 'package:classipod/features/up_next/screens/up_next_screen.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +85,14 @@ enum Routes {
   genreSongs,
   genresSongsMoreOptions,
   search,
-  searchMoreOptions;
+  searchMoreOptions,
+  podcasts,
+  podcastShow,
+  podcastEpisodeMoreOptions,
+  podcastSettings,
+  upNext,
+  upNextMoreOptions,
+  maintenance;
 
   @override
   String toString() {
@@ -155,6 +167,16 @@ enum Routes {
         return context.localization.searchScreenTitle;
       case searchMoreOptions:
         return context.localization.searchScreenTitle;
+      case podcasts:
+      case podcastShow:
+      case podcastEpisodeMoreOptions:
+      case podcastSettings:
+        return context.localization.podcastsScreenTitle;
+      case upNext:
+      case upNextMoreOptions:
+        return context.localization.upNextTitle;
+      case maintenance:
+        return context.localization.maintenanceTitle;
     }
   }
 }
@@ -244,6 +266,16 @@ final routerProvider = Provider(
                         parentNavigatorKey: rootNavigatorKey,
                         pageBuilder: (context, state) => const CupertinoPage(
                           child: ScreenPageContent(child: AboutScreen()),
+                        ),
+                      ),
+                      GoRoute(
+                        path: Routes.podcastSettings.name,
+                        name: Routes.podcastSettings.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => const CupertinoPage(
+                          child: ScreenPageContent(
+                            child: PodcastSettingsScreen(),
+                          ),
                         ),
                       ),
                       GoRoute(
@@ -352,6 +384,28 @@ final routerProvider = Provider(
                         ),
                       ),
                       GoRoute(
+                        path: Routes.upNext.name,
+                        name: Routes.upNext.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => const CupertinoPage(
+                          child: ScreenPageContent(child: UpNextScreen()),
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: Routes.upNextMoreOptions.name,
+                            name: Routes.upNextMoreOptions.name,
+                            parentNavigatorKey: rootNavigatorKey,
+                            pageBuilder: (context, state) => OptionsModalPage(
+                              context: context,
+                              title: Routes.upNextMoreOptions.title(context),
+                              builder: (context) => UpNextOptionsModal(
+                                index: state.extra as int? ?? 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
                         path: Routes.sleepTimer.name,
                         name: Routes.sleepTimer.name,
                         parentNavigatorKey: rootNavigatorKey,
@@ -361,6 +415,45 @@ final routerProvider = Provider(
                             child: const SleepTimerScreen(),
                           ),
                         ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: Routes.podcasts.name,
+                    name: Routes.podcasts.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => const CupertinoPage(
+                      child: ScreenPageContent(child: PodcastsScreen()),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: Routes.podcastShow.name,
+                        name: Routes.podcastShow.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => CupertinoPage(
+                          child: ScreenPageContent(
+                            child: PodcastShowScreen(
+                              feedUrl: state.uri.queryParameters['feed'] ?? '',
+                            ),
+                          ),
+                        ),
+                        routes: [
+                          GoRoute(
+                            path: Routes.podcastEpisodeMoreOptions.name,
+                            name: Routes.podcastEpisodeMoreOptions.name,
+                            parentNavigatorKey: rootNavigatorKey,
+                            pageBuilder: (context, state) => OptionsModalPage(
+                              context: context,
+                              title: Routes.podcastEpisodeMoreOptions.title(
+                                context,
+                              ),
+                              builder: (context) => PodcastEpisodeOptionsModal(
+                                episodeKey:
+                                    state.uri.queryParameters['episode'] ?? '',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

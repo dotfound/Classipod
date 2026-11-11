@@ -33,6 +33,7 @@ enum _SettingsDisplayItems {
   immersiveMode,
   showAppTutorial,
   librarySettings,
+  podcastSettings,
   resetSettings,
   donate;
 
@@ -72,6 +73,8 @@ enum _SettingsDisplayItems {
         return context.localization.showAppTutorialSettingTitle;
       case librarySettings:
         return context.localization.librarySettingsScreenTitle;
+      case podcastSettings:
+        return context.localization.podcastsScreenTitle;
       case resetSettings:
         return context.localization.resetSettingsTitle;
       case donate:
@@ -176,6 +179,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         break;
       case _SettingsDisplayItems.librarySettings:
         context.goNamed(Routes.librarySettings.name);
+        break;
+      case _SettingsDisplayItems.podcastSettings:
+        context.goNamed(Routes.podcastSettings.name);
         break;
       case _SettingsDisplayItems.resetSettings:
         await ref

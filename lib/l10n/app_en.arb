@@ -722,5 +722,125 @@
   "coverFlowBigTitle": "Big",
   "@coverFlowBigTitle": {
     "description": "The Cover Flow appearance option with larger album artwork, showing a centered cover and one tilted cover on each side, up to three covers total"
+  },
+  "podcastsScreenTitle": "Podcasts",
+  "@podcastsScreenTitle": {
+    "description": "The title of the podcasts screen and menu item"
+  },
+  "podcastRefresh": "Refresh",
+  "@podcastRefresh": {
+    "description": "The row that refreshes all podcast feeds"
+  },
+  "podcastRefreshing": "Refreshing…",
+  "@podcastRefreshing": {
+    "description": "Shown on the refresh row while feeds are being refreshed"
+  },
+  "podcastNoEpisodes": "No episodes",
+  "@podcastNoEpisodes": {
+    "description": "Shown when a podcast has no episodes"
+  },
+  "podcastLoading": "Loading podcasts…",
+  "@podcastLoading": {
+    "description": "Shown while the podcast library is opening"
+  },
+  "playNext": "Play Next",
+  "@playNext": {
+    "description": "Option that plays a track or episode straight after the current one"
+  },
+  "addToUpNext": "Add to Up Next",
+  "@addToUpNext": {
+    "description": "Option that adds a track or episode to the end of the Up Next list"
+  },
+  "upNextTitle": "Up Next",
+  "@upNextTitle": {
+    "description": "The title of the Up Next screen"
+  },
+  "upNextEmpty": "Nothing in Up Next",
+  "@upNextEmpty": {
+    "description": "Shown when the Up Next list is empty"
+  },
+  "upNextRemove": "Remove",
+  "@upNextRemove": {
+    "description": "Option that removes an item from Up Next"
+  },
+  "upNextMoveToTop": "Move to top",
+  "@upNextMoveToTop": {
+    "description": "Option that moves an item to the top of Up Next"
+  },
+  "upNextClear": "Clear Up Next",
+  "@upNextClear": {
+    "description": "Option that empties the Up Next list"
+  },
+  "podcastDownload": "Download",
+  "@podcastDownload": {
+    "description": "Option that downloads a podcast episode"
+  },
+  "podcastDeleteDownload": "Delete download",
+  "@podcastDeleteDownload": {
+    "description": "Option that deletes a downloaded podcast episode"
+  },
+  "podcastMarkPlayed": "Mark played",
+  "@podcastMarkPlayed": {
+    "description": "Option that marks an episode as played"
+  },
+  "podcastMarkUnplayed": "Mark unplayed",
+  "@podcastMarkUnplayed": {
+    "description": "Option that marks an episode as unplayed"
+  },
+  "podcastUnsubscribe": "Unsubscribe",
+  "@podcastUnsubscribe": {
+    "description": "Option that removes a podcast and its downloads"
+  },
+  "podcastWifiOnly": "Wi-Fi only",
+  "@podcastWifiOnly": {
+    "description": "Setting that limits podcast downloads to Wi-Fi"
+  },
+  "podcastKeepLatest": "Episodes to keep",
+  "@podcastKeepLatest": {
+    "description": "Setting for how many recent episodes are downloaded per podcast"
+  },
+  "podcastStorageUsed": "Storage used",
+  "@podcastStorageUsed": {
+    "description": "Row showing how much storage podcast downloads use"
+  },
+  "podcastDeleteAllPlayed": "Delete all played",
+  "@podcastDeleteAllPlayed": {
+    "description": "Option that deletes the files of every played episode"
+  },
+  "podcastImportOpml": "Import OPML",
+  "@podcastImportOpml": {
+    "description": "Option that imports podcast subscriptions from an OPML file"
+  },
+  "podcastSyncNow": "Run podcast sync now",
+  "@podcastSyncNow": {
+    "description": "Debug option that runs the podcast sync immediately"
+  },
+  "podcastQueued": "Queued",
+  "@podcastQueued": {
+    "description": "Shown beside an episode waiting to download"
+  },
+  "podcastFailed": "Failed",
+  "@podcastFailed": {
+    "description": "Shown beside an episode whose download failed"
+  },
+  "playbackSpeed": "Speed",
+  "@playbackSpeed": {
+    "description": "Option that changes the playback speed of a podcast episode"
+  },
+  "dockModeSettingTitle": "Dock mode",
+  "@dockModeSettingTitle": {
+    "description": "Setting that keeps the screen on while charging"
+  },
+  "maintenanceTitle": "Maintenance",
+  "@maintenanceTitle": {
+    "description": "Title of the hidden maintenance menu"
+  },
+  "maintenanceWifi": "Wi-Fi settings",
+  "@maintenanceWifi": {
+    "description": "Maintenance option that opens Android Wi-Fi settings"
+  },
+  "maintenanceBluetooth": "Bluetooth settings",
+  "@maintenanceBluetooth": {
+    "description": "Maintenance option that opens Android Bluetooth settings"
   }
 }

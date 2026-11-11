@@ -4,6 +4,7 @@ import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/navigation/routes.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
+import 'package:classipod/core/services/playback/up_next_controller.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/core/widgets/empty_state_widget.dart';
 import 'package:classipod/core/widgets/fast_scroll_indicator.dart';
@@ -11,6 +12,7 @@ import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
 import 'package:classipod/features/music/playlist/models/playlist_option_type.dart';
 import 'package:classipod/features/music/playlist/providers/playlists_provider.dart';
+import 'package:classipod/features/music/playlist/screens/playlist_songs_more_options_modal.dart';
 import 'package:classipod/features/music/playlist/widgets/playlist_option_list_tile.dart';
 import 'package:classipod/features/music/playlist/widgets/playlist_song_list_tile.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
@@ -152,7 +154,11 @@ class _PlaylistsSongsScreenState extends ConsumerState<PlaylistSongsScreen>
       final result = await context.pushNamed(
         Routes.playlistSongsMoreOptions.name,
       );
-      if (result == true) {
+      if (result == PlaylistSongsMoreOptionsModal.playNext) {
+        ref.read(upNextProvider.notifier).playNext([displayItems[index - 2]]);
+      } else if (result == PlaylistSongsMoreOptionsModal.addToUpNext) {
+        ref.read(upNextProvider.notifier).add([displayItems[index - 2]]);
+      } else if (result == true) {
         await ref
             .read(playlistsProvider.notifier)
             .removeSongFromPlaylist(

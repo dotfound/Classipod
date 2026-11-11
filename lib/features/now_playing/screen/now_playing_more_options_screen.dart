@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/navigation/routes.dart';
+import 'package:classipod/core/podcasts/podcast_playback.dart';
+import 'package:classipod/core/podcasts/podcast_providers.dart';
+import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/widgets/display_list_tile.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
@@ -13,6 +16,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 enum _NowPlayingMoreOptions {
+  upNext,
+  speed,
   addToOnTheGo,
   browseAlbum,
   browseArtist,
@@ -22,6 +27,10 @@ enum _NowPlayingMoreOptions {
 
   String title(BuildContext context) {
     switch (this) {
+      case upNext:
+        return context.localization.upNextTitle;
+      case speed:
+        return context.localization.playbackSpeed;
       case addToOnTheGo:
         return context.localization.addToOnTheGoPlaylist;
       case browseAlbum:
@@ -52,12 +61,31 @@ class _NowPlayingMoreOptionsScreenState
   String get routeName => Routes.nowPlayingMoreOptions.name;
 
   @override
-  List<_NowPlayingMoreOptions> get displayItems =>
-      _NowPlayingMoreOptions.values;
+  List<_NowPlayingMoreOptions> get displayItems {
+    final isEpisode =
+        ref.read(nowPlayingDetailsProvider).currentMetadata?.isPodcastEpisode ??
+        false;
+    return [
+      _NowPlayingMoreOptions.upNext,
+      if (isEpisode)
+        _NowPlayingMoreOptions.speed
+      else ...[
+        _NowPlayingMoreOptions.addToOnTheGo,
+        _NowPlayingMoreOptions.browseAlbum,
+        _NowPlayingMoreOptions.browseArtist,
+        _NowPlayingMoreOptions.editSong,
+      ],
+      _NowPlayingMoreOptions.sleepTimer,
+      _NowPlayingMoreOptions.cancel,
+    ];
+  }
+
+  String _speedLabel(double speed) =>
+      '${speed == speed.roundToDouble() ? speed.round() : speed}×';
 
   @override
   Future<void> onSelectPressed() =>
-      _navigateToScreen(_NowPlayingMoreOptions.values[selectedDisplayItem]);
+      _navigateToScreen(displayItems[selectedDisplayItem]);
 
   @override
   void onMenuButtonPressed() => _closeScreen();
@@ -78,6 +106,18 @@ class _NowPlayingMoreOptionsScreenState
         .read(nowPlayingDetailsProvider)
         .currentMetadata;
     switch (optionItem) {
+      case _NowPlayingMoreOptions.upNext:
+        await context.pushNamed(Routes.upNext.name);
+        break;
+      case _NowPlayingMoreOptions.speed:
+        final playback = ref.read(podcastServicesProvider).value?.playback;
+        if (playback == null) break;
+        final current = podcastSpeeds.indexOf(playback.speed);
+        await playback.setSpeed(
+          podcastSpeeds[(current + 1) % podcastSpeeds.length],
+        );
+        if (mounted) setState(() {});
+        break;
       case _NowPlayingMoreOptions.addToOnTheGo:
         ref
             .read(playlistsProvider.notifier)
@@ -143,7 +183,10 @@ class _NowPlayingMoreOptionsScreenState
           prototypeItem: const DisplayListTile(text: '', isSelected: false),
           itemBuilder: (context, index) {
             return DisplayListTile(
-              text: displayItems[index].title(context),
+              text: displayItems[index] == _NowPlayingMoreOptions.speed
+                  ? '${displayItems[index].title(context)}: '
+                        '${_speedLabel(ref.read(audioPlayerProvider).speed)}'
+                  : displayItems[index].title(context),
               isSelected: index == selectedDisplayItem,
               onTap: () async => _navigateToScreen(displayItems[index]),
             );

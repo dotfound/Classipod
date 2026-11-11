@@ -2,6 +2,7 @@ import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/extensions/go_router_extensions.dart';
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/navigation/routes.dart';
+import 'package:classipod/core/services/playback/up_next_controller.dart';
 import 'package:classipod/core/widgets/options_list_tile.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
@@ -11,6 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 enum _SongsMoreOptions {
+  playNext,
+  addToUpNext,
   addToOnTheGo,
   browseAlbum,
   browseArtist,
@@ -18,6 +21,10 @@ enum _SongsMoreOptions {
 
   String title(BuildContext context) {
     switch (this) {
+      case playNext:
+        return context.localization.playNext;
+      case addToUpNext:
+        return context.localization.addToUpNext;
       case addToOnTheGo:
         return context.localization.addToOnTheGoPlaylist;
       case browseAlbum:
@@ -53,6 +60,8 @@ class _SongsMoreOptionsModalState extends ConsumerState<SongsMoreOptionsModal>
 
   @override
   List<_SongsMoreOptions> get displayItems => [
+    _SongsMoreOptions.playNext,
+    _SongsMoreOptions.addToUpNext,
     _SongsMoreOptions.addToOnTheGo,
     if (widget.showAdditionalOptions) _SongsMoreOptions.browseAlbum,
     if (widget.showAdditionalOptions) _SongsMoreOptions.browseArtist,
@@ -61,11 +70,21 @@ class _SongsMoreOptionsModalState extends ConsumerState<SongsMoreOptionsModal>
 
   @override
   Future<void> onSelectPressed() =>
-      _navigateToScreen(_SongsMoreOptions.values[selectedDisplayItem]);
+      _navigateToScreen(displayItems[selectedDisplayItem]);
 
   Future<void> _navigateToScreen(_SongsMoreOptions optionItem) async {
     setState(() => selectedDisplayItem = displayItems.indexOf(optionItem));
     switch (optionItem) {
+      case _SongsMoreOptions.playNext:
+        ref.read(upNextProvider.notifier).playNext([
+          widget.currentSongMetadata,
+        ]);
+        context.pop();
+        break;
+      case _SongsMoreOptions.addToUpNext:
+        ref.read(upNextProvider.notifier).add([widget.currentSongMetadata]);
+        context.pop();
+        break;
       case _SongsMoreOptions.addToOnTheGo:
         ref
             .read(playlistsProvider.notifier)

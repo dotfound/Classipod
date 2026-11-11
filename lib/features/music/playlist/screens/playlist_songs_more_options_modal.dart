@@ -7,11 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 enum _PlaylistSongsMoreOptions {
+  playNext,
+  addToUpNext,
   removeSongFromPlaylist,
   cancel;
 
   String title(BuildContext context) {
     switch (this) {
+      case playNext:
+        return context.localization.playNext;
+      case addToUpNext:
+        return context.localization.addToUpNext;
       case removeSongFromPlaylist:
         return context.localization.removeSongFromThePlaylist;
       case cancel:
@@ -22,6 +28,11 @@ enum _PlaylistSongsMoreOptions {
 
 class PlaylistSongsMoreOptionsModal extends ConsumerStatefulWidget {
   const PlaylistSongsMoreOptionsModal({super.key});
+
+  /// Results popped for the Up Next options; the playlist screen acts on
+  /// them because it knows which song was selected.
+  static const playNext = 'playNext';
+  static const addToUpNext = 'addToUpNext';
 
   @override
   ConsumerState createState() => _PlaylistSongsMoreOptionsModalState();
@@ -39,11 +50,17 @@ class _PlaylistSongsMoreOptionsModalState
 
   @override
   Future<void> onSelectPressed() =>
-      _performAction(_PlaylistSongsMoreOptions.values[selectedDisplayItem]);
+      _performAction(displayItems[selectedDisplayItem]);
 
   Future<void> _performAction(_PlaylistSongsMoreOptions optionItem) async {
     setState(() => selectedDisplayItem = displayItems.indexOf(optionItem));
     switch (optionItem) {
+      case _PlaylistSongsMoreOptions.playNext:
+        context.pop(PlaylistSongsMoreOptionsModal.playNext);
+        break;
+      case _PlaylistSongsMoreOptions.addToUpNext:
+        context.pop(PlaylistSongsMoreOptionsModal.addToUpNext);
+        break;
       case _PlaylistSongsMoreOptions.removeSongFromPlaylist:
         context.pop(true);
         break;
