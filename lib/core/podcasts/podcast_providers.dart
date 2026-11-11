@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/podcasts/podcast_background.dart';
@@ -10,8 +11,8 @@ import 'package:classipod/core/podcasts/podcast_sync.dart';
 import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PodcastServices {
@@ -83,7 +84,22 @@ final podcastSettingsProvider = Provider<PodcastSettings>(PodcastSettings.new);
 final podcastServicesProvider = FutureProvider<PodcastServices>((ref) async {
   final settings = ref.read(podcastSettingsProvider);
   late final PodcastSync sync;
-  await PodcastBackground.claimForApp(() => sync.run());
+  final player = ref.read(audioPlayerProvider);
+  await PodcastBackground.claimForApp(() async {
+    // A run already in flight may have skipped the feed refresh.
+    final wasRunning = sync.isRunning;
+    await sync.run();
+    if (wasRunning) await sync.run();
+  });
+  PodcastBackground.onWorkerSyncDone = () {
+    // With no screen attached and nothing playing, this process only
+    // exists for the background sync. End it so the next launch of the
+    // app starts cleanly.
+    final state = WidgetsBinding.instance.lifecycleState;
+    final hasScreen = state != null && state != AppLifecycleState.detached;
+    if (hasScreen || player.playing) return;
+    Timer(const Duration(seconds: 3), () => exit(0));
+  };
   final repository = await PodcastRepository.open(
     storageRoot: await PodcastBackground.storageRoot(),
   );
@@ -165,6 +181,7 @@ class PodcastSyncController extends Notifier<bool> {
   bool build() => false;
 
   static const seedAsset = 'assets/podcasts_seed.opml';
+  AppLifecycleListener? _lifecycle;
 
   /// Run once at app start: schedules the background task, imports the
   /// bundled subscriptions on first launch, then syncs.
@@ -173,6 +190,8 @@ class PodcastSyncController extends Notifier<bool> {
       final settings = ref.read(podcastSettingsProvider);
       await ref.read(podcastServicesProvider.future);
       await PodcastBackground.schedule(wifiOnly: settings.wifiOnly);
+      // Also sync when the app comes back to the front (throttled).
+      _lifecycle ??= AppLifecycleListener(onResume: () => unawaited(sync()));
       if (!settings.seedImported) {
         final failed = await importOpml(await rootBundle.loadString(seedAsset));
         if (failed.isEmpty) await settings.setSeedImported();

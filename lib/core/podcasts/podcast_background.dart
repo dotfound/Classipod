@@ -23,6 +23,12 @@ class PodcastBackground {
 
   static const taskName = 'uk.dotfound.pixelpod.podcastSync';
   static const catchUpTaskName = '$taskName.catchUp';
+
+  /// Overridable for testing with --dart-define=PODCAST_CATCH_UP_SECONDS=60.
+  static const catchUpDelaySeconds = int.fromEnvironment(
+    'PODCAST_CATCH_UP_SECONDS',
+    defaultValue: 900,
+  );
   static const hiveSubDirectory = 'ClassiPod';
   static const _appPort = 'pixelpod-podcast-app';
   static const _workerPort = 'pixelpod-podcast-worker';
@@ -49,7 +55,7 @@ class PodcastBackground {
     await Workmanager().registerOneOffTask(
       catchUpTaskName,
       taskName,
-      initialDelay: const Duration(minutes: 15),
+      initialDelay: const Duration(seconds: catchUpDelaySeconds),
       constraints: Constraints(
         networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
       ),
@@ -74,23 +80,51 @@ class PodcastBackground {
     final port = ReceivePort();
     ui.IsolateNameServer.removePortNameMapping(_appPort);
     ui.IsolateNameServer.registerPortWithName(port.sendPort, _appPort);
-    port.listen((message) {
-      if (message is SendPort) {
-        message.send(true);
-        unawaited(sync());
+    port.listen((message) async {
+      if (message is! SendPort) return;
+      // Acknowledge at once so the worker knows this isolate is alive,
+      // then tell it when the sync has finished so it can stay alive
+      // until then.
+      message.send(true);
+      try {
+        await sync();
+      } finally {
+        message.send(_done);
+        onWorkerSyncDone?.call();
       }
     });
   }
 
+  static const _done = 'done';
+
+  /// Called in the app isolate after a sync that a worker asked for.
+  static void Function()? onWorkerSyncDone;
+
   /// The worker's entry point. Returns true so the task is not retried
   /// early; failed downloads are picked up on the next run.
   static Future<bool> runHeadless() async {
-    final app = ui.IsolateNameServer.lookupPortByName(_appPort);
+    // The audio plugin boots the app's own isolate in this process even
+    // when there is no screen, so give it a moment to appear and let it do
+    // the sync: the podcast boxes must only be open in one isolate.
+    SendPort? app;
+    for (var i = 0; i < 32 && app == null; i++) {
+      app = ui.IsolateNameServer.lookupPortByName(_appPort);
+      if (app == null) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+    }
     if (app != null) {
       final reply = ReceivePort();
+      final messages = StreamIterator<dynamic>(reply);
       app.send(reply.sendPort);
       try {
-        await reply.first.timeout(const Duration(seconds: 3));
+        await messages.moveNext().timeout(const Duration(seconds: 3));
+        // Acknowledged: wait for the app isolate to finish the sync.
+        try {
+          await messages.moveNext().timeout(const Duration(minutes: 9));
+        } on TimeoutException {
+          debugPrint('Podcast sync is still running in the app');
+        }
         reply.close();
         return true;
       } on TimeoutException {

@@ -51,6 +51,10 @@ phone can be restarted or switched off.
   `adb shell dumpsys deviceidle whitelist +uk.dotfound.pixelpod`.
 - Default home app:
   `adb shell cmd package set-home-activity uk.dotfound.pixelpod/com.adeeteya.classipod.MainActivity`.
+- Android's swipe lock screen turned off, so the maintenance exit and Home
+  go straight back to PixelPod: `adb shell locksettings set-disabled true`.
+- Screen timeout set to 2 minutes:
+  `adb shell settings put system screen_off_timeout 120000`.
 - Device owner (this is what locks the phone):
   `adb shell dpm set-device-owner uk.dotfound.pixelpod/.PixelPodAdminReceiver`.
 
