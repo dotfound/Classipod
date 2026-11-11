@@ -55,6 +55,11 @@ class MusicMetadata extends HiveObject {
 
   String get identity => songId ?? filePath ?? '$originalSongIndex';
 
+  static const podcastIdPrefix = 'podcast:';
+
+  /// Podcast episodes share the track model but never enter the library.
+  bool get isPodcastEpisode => songId?.startsWith(podcastIdPrefix) ?? false;
+
   /// Name of the track.
   final String? trackName;
 

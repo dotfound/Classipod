@@ -39,6 +39,16 @@ class NowPlayingDetailsNotifier extends Notifier<NowPlayingModel> {
       }),
     );
 
+    // Up Next tracks play outside the queue, so follow the handler's
+    // current track as well as its queue index.
+    subscriptions.add(
+      handler.currentSongStream.listen((song) {
+        if (song != null && song.identity != state.currentMetadata?.identity) {
+          state = state.copyWith(currentMetadata: song);
+        }
+      }),
+    );
+
     subscriptions.add(
       player.playingStream.listen((isPlaying) {
         if (isPlaying != state.isPlaying) {
@@ -134,6 +144,7 @@ class NowPlayingDetailsNotifier extends Notifier<NowPlayingModel> {
   }
 
   Future<void> setCurrentMetadataRating(int val) async {
+    if (state.currentMetadata?.isPodcastEpisode ?? false) return;
     if (0 <= val && val <= 5 && state.currentMetadata != null) {
       final newMetadata = state.currentMetadata!.copyWith(rating: val);
       await updateMetadata(newMetadata);

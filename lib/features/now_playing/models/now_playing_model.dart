@@ -2,7 +2,7 @@ import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:just_audio/just_audio.dart';
 
-enum NowPlayingType { album, playlist, songs }
+enum NowPlayingType { album, playlist, songs, podcast }
 
 class NowPlayingModel {
   final int currentIndex;

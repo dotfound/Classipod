@@ -4,9 +4,11 @@ import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/podcasts/podcast_background.dart';
 import 'package:classipod/core/podcasts/podcast_download_service.dart';
 import 'package:classipod/core/podcasts/podcast_opml.dart';
+import 'package:classipod/core/podcasts/podcast_playback.dart';
 import 'package:classipod/core/podcasts/podcast_repository.dart';
 import 'package:classipod/core/podcasts/podcast_sync.dart';
 import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
+import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -16,11 +18,13 @@ class PodcastServices {
   final PodcastRepository repository;
   final PodcastDownloadService downloads;
   final PodcastSync sync;
+  final PodcastPlaybackTracker playback;
 
   const PodcastServices({
     required this.repository,
     required this.downloads,
     required this.sync,
+    required this.playback,
   });
 }
 
@@ -94,11 +98,20 @@ final podcastServicesProvider = FutureProvider<PodcastServices>((ref) async {
           results.contains(ConnectivityResult.ethernet);
     },
   );
-  ref.onDispose(() => unawaited(repository.close()));
+  final playback = PodcastPlaybackTracker(
+    repository: repository,
+    handler: ref.read(libraryAudioHandlerProvider),
+    player: ref.read(audioPlayerProvider),
+  );
+  ref.onDispose(() async {
+    await playback.dispose();
+    await repository.close();
+  });
   return PodcastServices(
     repository: repository,
     downloads: downloads,
     sync: sync,
+    playback: playback,
   );
 });
 

@@ -4,9 +4,13 @@ import 'package:audio_service/audio_service.dart';
 import 'package:classipod/core/constants/keys.dart';
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
+import 'package:classipod/core/podcasts/podcast_playback.dart';
+import 'package:classipod/core/podcasts/podcast_providers.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_session.dart';
+import 'package:classipod/core/services/playback/up_next_controller.dart';
+import 'package:classipod/core/services/playback/up_next_store.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
@@ -151,9 +155,49 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
           unawaited(store!.dispose());
         });
       }
+      await _restoreUpNext(handler, library);
       _sessionRestored = true;
     } finally {
       handler.restoringSession = false;
+    }
+  }
+
+  /// Restores Up Next, resolving songs from the library and episodes from
+  /// the podcast repository (only episodes that are still downloaded).
+  Future<void> _restoreUpNext(
+    LibraryAudioHandler handler,
+    List<MusicMetadata> library,
+  ) async {
+    try {
+      final store = UpNextStore(
+        await Hive.openBox<dynamic>(UpNextStore.boxName),
+      );
+      final byId = {for (final song in library) song.identity: song};
+      final podcasts =
+          store.readIds().any(
+            (id) => id.startsWith(MusicMetadata.podcastIdPrefix),
+          )
+          ? (await ref.read(podcastServicesProvider.future)).repository
+          : null;
+      store.attach(
+        handler,
+        (id) {
+          final song = byId[id];
+          if (song != null || podcasts == null) return song;
+          if (!id.startsWith(MusicMetadata.podcastIdPrefix)) return null;
+          final episode = podcasts.episode(
+            id.substring(MusicMetadata.podcastIdPrefix.length),
+          );
+          if (episode == null || !episode.isDownloaded) return null;
+          return episodeToMetadata(episode, podcasts.show(episode.showFeedUrl));
+        },
+        onChanged: () {
+          if (ref.mounted) ref.read(upNextProvider.notifier).refresh();
+        },
+      );
+      ref.onDispose(() => handler.onUpNextChanged = null);
+    } catch (error) {
+      debugPrint('Could not restore Up Next: ${error.runtimeType}');
     }
   }
 
@@ -350,6 +394,25 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
         await playSongAtIndex(songIndex);
         Future.delayed(const Duration(milliseconds: 100), play);
       }
+    });
+  }
+
+  /// Plays a downloaded episode as its own queue, resuming where it was
+  /// left. Episodes never join the music library queue or Shuffle Songs.
+  Future<void> playEpisode(MusicMetadata episode) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final handler = ref.read(libraryAudioHandlerProvider);
+      if (handler.currentSong?.identity == episode.identity) {
+        await _play();
+        return;
+      }
+      await setAudioSource(
+        preload: false,
+        nowPlayingType: NowPlayingType.podcast,
+        musicMetadataList: [episode],
+      );
+      await handler.play();
     });
   }
 

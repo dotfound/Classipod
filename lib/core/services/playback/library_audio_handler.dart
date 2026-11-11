@@ -19,6 +19,72 @@ class LibraryAudioHandler extends BaseAudioHandler {
   bool _restoredSongPending = false;
   Duration? _initialPosition;
 
+  /// Up Next: tracks played before the normal queue advances.
+  final List<MusicMetadata> _upNext = [];
+
+  /// The Up Next track being played, if playback has left the queue.
+  MusicMetadata? _detour;
+  VoidCallback? onUpNextChanged;
+
+  /// Where to start a track, so podcast episodes resume.
+  Duration Function(MusicMetadata song)? resumePositionFor;
+  final StreamController<MusicMetadata?> _current =
+      StreamController.broadcast();
+
+  List<MusicMetadata> get upNext => List.unmodifiable(_upNext);
+  MusicMetadata? get currentSong =>
+      _detour ?? (_songs.isEmpty ? null : _songs[logicalQueue.index]);
+  Stream<MusicMetadata?> get currentSongStream => _current.stream;
+
+  void setUpNext(List<MusicMetadata> songs) {
+    _upNext
+      ..clear()
+      ..addAll(songs);
+    onUpNextChanged?.call();
+  }
+
+  /// Play Next puts tracks at the front; Add to Up Next appends them.
+  void addToUpNext(List<MusicMetadata> songs, {bool playNext = false}) {
+    _upNext.insertAll(playNext ? 0 : _upNext.length, songs);
+    onUpNextChanged?.call();
+  }
+
+  void removeFromUpNext(int index) {
+    if (index < 0 || index >= _upNext.length) return;
+    _upNext.removeAt(index);
+    onUpNextChanged?.call();
+  }
+
+  void moveUpNextToTop(int index) {
+    if (index <= 0 || index >= _upNext.length) return;
+    _upNext.insert(0, _upNext.removeAt(index));
+    onUpNextChanged?.call();
+  }
+
+  void clearUpNext() => setUpNext(const []);
+
+  /// Plays the head of Up Next, else the next track of the normal queue.
+  Future<void> _advance({required bool automatic}) async {
+    if (automatic && _detour == null && logicalQueue.loopMode == LoopMode.one) {
+      await _load(logicalQueue.index, startPlaying: true);
+      return;
+    }
+    if (_upNext.isNotEmpty) {
+      final song = _upNext.removeAt(0);
+      onUpNextChanged?.call();
+      await _load(logicalQueue.index, startPlaying: true, detour: song);
+      return;
+    }
+    final next = _songs.isEmpty
+        ? null
+        : logicalQueue.next(automatic: automatic);
+    if (next == null) {
+      if (automatic) await player.pause();
+    } else {
+      await _load(next, startPlaying: true);
+    }
+  }
+
   List<MusicMetadata> get songs => _songs;
   bool get loading => _loading;
   bool _wantPlayback = false;
@@ -63,6 +129,7 @@ class LibraryAudioHandler extends BaseAudioHandler {
               logicalQueue.index,
               startPlaying: true,
               recovering: true,
+              keepDetour: true,
             );
           } catch (_) {}
         }),
@@ -116,12 +183,8 @@ class LibraryAudioHandler extends BaseAudioHandler {
                   player.processingState != ProcessingState.completed) {
                 return;
               }
-              final next = logicalQueue.next(automatic: true);
-              if (next == null) {
-                await player.pause();
-              } else {
-                await _load(next, startPlaying: true);
-              }
+              _wantPlayback = true;
+              await _advance(automatic: true);
             }).catchError(_reportError),
           );
         }
@@ -178,6 +241,7 @@ class LibraryAudioHandler extends BaseAudioHandler {
       final hadSongs = _songs.isNotEmpty;
       if (hadSongs) await player.pause();
       _songs = List.unmodifiable(songs);
+      _detour = null;
       _resetQueue();
       _initialPosition = null;
       _lastPosition = Duration.zero;
@@ -269,12 +333,19 @@ class LibraryAudioHandler extends BaseAudioHandler {
     bool startPlaying = false,
     bool preload = true,
     bool recovering = false,
+    bool keepDetour = false,
+    MusicMetadata? detour,
     Duration initialPosition = Duration.zero,
   }) async {
+    final nextDetour = detour ?? (keepDetour ? _detour : null);
+    final song = nextDetour ?? _songs[index];
+    final start = initialPosition == Duration.zero && !recovering && preload
+        ? resumePositionFor?.call(song) ?? Duration.zero
+        : initialPosition;
     if (!recovering) {
       _cancelRecovery();
       _initialPosition = null;
-      _lastPosition = initialPosition;
+      _lastPosition = start;
     }
     _loading = true;
     final version = _sourceVersion;
@@ -282,8 +353,10 @@ class LibraryAudioHandler extends BaseAudioHandler {
     try {
       if (!preload) {
         _sourceLoaded = false;
+        _detour = null;
         logicalQueue.index = index;
         _indices.add(index);
+        _current.add(song);
         mediaItem.add(null);
         return;
       }
@@ -294,12 +367,16 @@ class LibraryAudioHandler extends BaseAudioHandler {
       if (kIsWeb) await player.stop();
       _sourceLoaded = false;
       // Commit identity before resolution, including failures on another track.
-      logicalQueue.index = index;
-      _indices.add(index);
-      _initialPosition = recovering ? _resumePosition : initialPosition;
+      _detour = nextDetour;
+      if (nextDetour == null) {
+        logicalQueue.index = index;
+        _indices.add(index);
+      }
+      _current.add(song);
+      _initialPosition = recovering ? _resumePosition : start;
       final source = resolveSource == null
-          ? _songs[index].toAudioSource() as UriAudioSource
-          : await resolveSource!(_songs[index]);
+          ? song.toAudioSource() as UriAudioSource
+          : await resolveSource!(song);
       if (version != _sourceVersion) return;
       final item = source.tag as MediaItem;
       mediaItem.add(
@@ -311,7 +388,7 @@ class LibraryAudioHandler extends BaseAudioHandler {
       await player.setAudioSource(
         source,
         preload: preload,
-        initialPosition: recovering ? _resumePosition : initialPosition,
+        initialPosition: recovering ? _resumePosition : start,
       );
       if (version != _sourceVersion) return;
       _sourceLoaded = true;
@@ -343,13 +420,19 @@ class LibraryAudioHandler extends BaseAudioHandler {
     return _serialize(() async {
       if (_songs.isEmpty) return;
       if (_recovering) {
-        await _load(logicalQueue.index, startPlaying: true, recovering: true);
+        await _load(
+          logicalQueue.index,
+          startPlaying: true,
+          recovering: true,
+          keepDetour: true,
+        );
         return;
       }
       if (!_sourceLoaded) {
         await _load(
           logicalQueue.index,
           startPlaying: true,
+          keepDetour: true,
           initialPosition: _initialPosition ?? Duration.zero,
         );
         return;
@@ -419,6 +502,19 @@ class LibraryAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToNext() {
+    if (_upNext.isNotEmpty) {
+      _restoredSongPending = false;
+      _interruptSeek();
+      _cancelRecovery();
+      _sourceVersion++;
+      final wasPlaying = _wantPlayback;
+      return _serialize(() async {
+        if (_upNext.isEmpty) return;
+        final song = _upNext.removeAt(0);
+        onUpNextChanged?.call();
+        await _load(logicalQueue.index, startPlaying: wasPlaying, detour: song);
+      });
+    }
     final next = logicalQueue.next();
     return next == null
         ? Future.value()
@@ -430,6 +526,10 @@ class LibraryAudioHandler extends BaseAudioHandler {
     if ((_sourceLoaded && !_recovering ? player.position : displayPosition) >
         const Duration(seconds: 3)) {
       return seek(Duration.zero);
+    }
+    // Going back from an Up Next track returns to the queue's current track.
+    if (_detour != null) {
+      return select(logicalQueue.index, startPlaying: _wantPlayback);
     }
     final previous = logicalQueue.previous();
     return previous == null
@@ -474,7 +574,7 @@ class LibraryAudioHandler extends BaseAudioHandler {
       _broadcast();
       return;
     }
-    final remote = _songs.isNotEmpty && _songs[logicalQueue.index].isSubsonic;
+    final remote = currentSong?.isSubsonic ?? false;
     final message = error.toString().toLowerCase();
     final blockedHttp =
         message.contains('cleartext') ||
@@ -590,5 +690,7 @@ class LibraryAudioHandler extends BaseAudioHandler {
       await subscription.cancel();
     }
     await _indices.close();
+    await _current.close();
+    onUpNextChanged = null;
   }
 }
