@@ -17,4 +17,9 @@ enum SharedPreferencesKeys {
   isMenuFirstTime,
   isNowPlayingFirstTime,
   isInputTextBarFirstTime,
+  podcastWifiOnly,
+  podcastKeepLatest,
+  podcastSeedImported,
+  podcastLastSync,
+  dockMode,
 }
