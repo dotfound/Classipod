@@ -305,6 +305,7 @@ void main() {
 
         await tracker.setSpeed(2);
         expect(repository.show(show.feedUrl)!.speed, 2);
+        player.position = Duration.zero;
         await handler.skipToPrevious();
         await settle();
         expect(handler.currentSong!.identity, 'a');
