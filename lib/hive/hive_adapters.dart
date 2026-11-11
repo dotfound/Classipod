@@ -1,4 +1,6 @@
 import 'package:classipod/core/models/music_metadata.dart';
+import 'package:classipod/core/podcasts/models/podcast_episode.dart';
+import 'package:classipod/core/podcasts/models/podcast_show.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
 import 'package:classipod/features/settings/models/exclude_directory_model.dart';
 import 'package:hive_ce/hive.dart';
@@ -9,5 +11,8 @@ part 'hive_adapters.g.dart';
   AdapterSpec<MusicMetadata>(),
   AdapterSpec<PlaylistModel>(),
   AdapterSpec<ExcludeDirectoryModel>(),
+  AdapterSpec<PodcastShow>(),
+  AdapterSpec<PodcastEpisode>(),
+  AdapterSpec<PodcastDownloadState>(),
 ])
 class HiveAdapters {}

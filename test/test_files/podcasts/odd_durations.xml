@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Odd Durations</title>
+    <image><url>https://example.com/plain.jpg</url></image>
+    <item><title>Seconds</title><guid>a</guid><itunes:duration>754</itunes:duration>
+      <enclosure url="https://example.com/a.mp3" type="audio/mpeg"/></item>
+    <item><title>Minutes</title><guid>b</guid><itunes:duration>12:34</itunes:duration>
+      <enclosure url="https://example.com/b.mp3" type="audio/mpeg"/></item>
+    <item><title>Hours</title><guid>c</guid><itunes:duration>01:02:03</itunes:duration>
+      <enclosure url="https://example.com/c.m4a"/></item>
+    <item><title>Garbage</title><guid>d</guid><itunes:duration>about an hour</itunes:duration>
+      <enclosure url="https://example.com/d.mp3" type="audio/mpeg"/></item>
+    <item><title>Missing</title><guid>e</guid>
+      <enclosure url="https://example.com/e.mp3" type="audio/mpeg"/></item>
+  </channel>
+</rss>
