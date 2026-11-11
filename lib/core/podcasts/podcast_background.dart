@@ -22,6 +22,7 @@ class PodcastBackground {
   PodcastBackground._();
 
   static const taskName = 'uk.dotfound.pixelpod.podcastSync';
+  static const catchUpTaskName = '$taskName.catchUp';
   static const hiveSubDirectory = 'ClassiPod';
   static const _appPort = 'pixelpod-podcast-app';
   static const _workerPort = 'pixelpod-podcast-worker';
@@ -40,6 +41,19 @@ class PodcastBackground {
         networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
       ),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
+    );
+    // A one-off catch-up shortly after the app was last opened, so episodes
+    // published or queued while the app was in use are fetched once it is
+    // put down. Unlike the periodic task it can be forced with
+    // `adb shell cmd jobscheduler run -f` for testing.
+    await Workmanager().registerOneOffTask(
+      catchUpTaskName,
+      taskName,
+      initialDelay: const Duration(minutes: 15),
+      constraints: Constraints(
+        networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
+      ),
+      existingWorkPolicy: ExistingWorkPolicy.replace,
     );
   }
 
