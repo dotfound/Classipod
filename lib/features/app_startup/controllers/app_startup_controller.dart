@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:classipod/core/constants/constants.dart';
+import 'package:classipod/core/podcasts/podcast_providers.dart';
 import 'package:classipod/core/providers/device_directory_provider.dart';
 import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
@@ -40,6 +41,9 @@ final appStartupControllerProvider = FutureProvider<void>((ref) async {
   }
   await initializeMediaSession(ref.read(libraryAudioHandlerProvider));
   unawaited(ref.read(clickSoundServiceProvider).preload());
+  if (!kIsWeb && Platform.isAndroid) {
+    unawaited(ref.read(podcastSyncControllerProvider.notifier).start());
+  }
   ref
       .read(settingsPreferencesControllerProvider.notifier)
       .setAudioSource(isOnlineAudioSource: kIsWeb);

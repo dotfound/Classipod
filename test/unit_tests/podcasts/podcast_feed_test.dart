@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:classipod/core/podcasts/models/podcast_episode.dart';
 import 'package:classipod/core/podcasts/podcast_feed_client.dart';
+import 'package:classipod/core/podcasts/podcast_opml.dart';
 import 'package:classipod/core/podcasts/podcast_repository.dart';
 import 'package:classipod/hive/hive_registrar.g.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,6 +63,29 @@ void main() {
         () => parsePodcastFeed('not xml', feedUrl),
         throwsA(isA<PodcastFeedException>()),
       );
+    });
+  });
+
+  group('opml', () {
+    test('reads feed URLs once each, including nested outlines', () {
+      const opml =
+          '<opml><body><outline text="Folder">'
+          '<outline type="rss" xmlUrl="https://a.example/feed"/>'
+          '</outline><outline xmlUrl="https://b.example/feed"/>'
+          '<outline xmlUrl="https://a.example/feed"/>'
+          '<outline text="No feed"/></body></opml>';
+      expect(parseOpmlFeedUrls(opml), [
+        'https://a.example/feed',
+        'https://b.example/feed',
+      ]);
+      expect(parseOpmlFeedUrls('not xml'), isEmpty);
+    });
+
+    test('the bundled seed lists every subscription', () {
+      final urls = parseOpmlFeedUrls(
+        File('assets/podcasts_seed.opml').readAsStringSync(),
+      );
+      expect(urls, hasLength(12));
     });
   });
 
